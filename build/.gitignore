@@ -1,0 +1,4 @@
+powershell-eldoc.el
+*.csv
+*.txt
+*.dat
