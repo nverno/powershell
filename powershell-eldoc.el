@@ -74,11 +74,12 @@ Where <fcn-name> is the name of the function to which <helper string> applies.
 (defun powershell-eldoc-setup ()
   "Load the function documentation for use with eldoc."
   (set (make-local-variable 'eldoc-documentation-function) #'powershell-eldoc-function)
-  (unless (vectorp powershell-eldoc-obarray)
-    (setq powershell-eldoc-obarray (make-vector 400 0))
+  (if (not (vectorp powershell-eldoc-obarray))
+    (setq powershell-eldoc-obarray (make-vector 1400 0))
     (if powershell-eldoc-data-files
         (powershell-eldoc-enable powershell-eldoc-data-files)
-      (powershell-eldoc-default-enable))))
+      (powershell-eldoc-default-enable))
+    (eldoc-mode)))
 
 (defun powershell-eldoc-function ()
   "Return a documentation string appropriate for the current context or nil."

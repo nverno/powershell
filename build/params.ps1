@@ -36,8 +36,7 @@ function Get-Signature ($Cmd) {
         $List = @(Get-Command $Cmd -ErrorAction SilentlyContinue)
     }
     if (!$List[0] ) {
-        continue
-        # throw "Command '$Cmd' not found"
+        "Unable to open $Cmd"
     } else {
         foreach ($O in $List) {
             switch -regex ($O.GetType().Name) {
@@ -77,12 +76,21 @@ function Get-Signature ($Cmd) {
     }
 }
 
+function Munge-Eldoc ($str) {
+    ($str.Replace('\', '\\').`
+      Replace('"', '\"') -replace '\[|\]|<.*?>','') -replace ' +', ' '
+}
 
 Get-Command Get-Process |
   ?{$_.CommandType -ne 'Alias' -and $_.Name -notlike '*:'} |
   %{$_.Name} |
   sort |
-  %{("(set (intern ""$($_.Replace('\','\\'))"" powershell-eldoc-obarray)" +
-     " ""$(Get-Signature $_|%{$_.Replace('\','\\').Replace('"','\"')})"")"
-).Replace("`r`n"")",""")")} | 
-  ac $outfile
+  %{("(puthash ""$($_.Replace('\', '\\'))"" " +
+     "'((sig . ""$(Get-Signature $_ | %{ Munge-Eldoc $_ })"")").`
+       Replace('`r`n"")"', '"")"') + "(pars . " +
+    [System.String]::Join(" ", $(Get-Command $_ | 
+      select -ExpandProperty Parameters | Select -expandProperty Keys)) +
+    "))"}
+
+# | ac $outfile
+  # %{Format-Eldoc $_} | ac $outfile
