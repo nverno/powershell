@@ -11,13 +11,17 @@
   https://www.emacswiki.org/emacs/PowerShell-Mode.el
 #>
 
-Param($outfile = $null,
+Param($outfile = $null, 
       $overwrite = $null)
 
 if ($outfile -eq $null) {
-    $outfile = [System.IO.Path]::GetFullPath("$PSScriptroot\eldoc.el")
+    $outfile = [System.IO.Path]::GetFullPath("$PSScriptroot\eldoc-data.el")
 } else {
     $outfile = [System.IO.Path]::GetFullPath("$outfile")
+}
+
+if (($overwrite -eq $null) -and (Test-Path $outfile)) {
+    Write-Error "$outfile already exists" -ErrorAction "Stop"
 }
 
 function Get-Signature ($Cmd) {
@@ -73,11 +77,11 @@ function Get-Signature ($Cmd) {
     }
 }
 
-# get-command |
-#   ?{$_.CommandType -ne 'Alias' -and $_.Name -notlike '*:'} |
-#   %{$_.Name} |
-#   sort |
-#   %{("(set (intern ""$($_.Replace('\','\\'))"" posh-eldoc-obarray)" +
-#      " ""$(Get-Signature $_|%{$_.Replace('\','\\').Replace('"','\"')})"")"
-#     ).Replace("`r`n"")",""")")} | ac $outfile
 
+Get-Command |
+  ?{$_.CommandType -ne 'Alias' -and $_.Name -notlike '*:'} |
+  %{$_.Name} |
+  sort |
+  %{("(set (intern ""$($_.Replace('\','\\'))"" powershell-eldoc-obarray)" +
+     " ""$(Get-Signature $_|%{$_.Replace('\','\\').Replace('"','\"')})"")"
+    ).Replace("`r`n"")",""")")} | ac $outfile

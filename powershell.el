@@ -32,7 +32,7 @@
 (eval-when-compile
   (require 'thingatpt))
 (require 'inf-powershell)
-(declare-function powershell-eldoc-setup "powershell-eldoc")
+(autoload 'powershell-eldoc-setup "powershell-eldoc")
 
 (defgroup powershell nil
   "PowerShell scripting and programming utilities."
@@ -713,29 +713,30 @@ characters that can't be set by the `syntax-table' alone.")
     ["Start powershell" powershell t]
     ["Send Region" inf-powershell-send-region t]
     ["Send Buffer" inf-powershell-send-buffer t]
-    ["Change Directory" inf-powershell-cd-here t
+    ["Set Prompt" inf-powershell-set-prompt t]
+    ["Change Directory" inf-powershell-cd-here
      :help "Change directory in inferior process to current"]
     ["Open ISE" powershell-ise t]
     "--"
-    ["Compile" powershell-compile t
+    ["Compile" powershell-compile
      :help "Run script with output to compilation buffer."]
-    ["Compile as admin" powershell-compile-admin t
+    ["Compile as admin" powershell-compile-admin
      :help "Run script as administrator, output to compilation buffer."]
     "--"
-    ["Lookup Command" powershell-describe-command t
+    ["Lookup Command" powershell-describe-command
      :help "Lookup help for command using Get-Help"]
-    ["Lookup Command Online" powershell-descibe-command-ss64 t
+    ["Lookup Command Online" powershell-descibe-command-ss64
      :help "Lookup help for command online at http://ss64.com/ps"]
     "--"
-    ["DoubleQuote Selection" powershell-doublequote-selection t
+    ["DoubleQuote Selection" powershell-doublequote-selection
      :help "DoubleQuotes the selection escaping embedded double quotes"]
-    ["SingleQuote Selection" powershell-quote-selection t
+    ["SingleQuote Selection" powershell-quote-selection
      :help "SingleQuotes the selection escaping embedded single quotes"]
-    ["UnQuote selection" powershell-unquote-selection t
+    ["UnQuote selection" powershell-unquote-selection
      :help "Un-Quotes the selection un-escaping any escaped quotes"]
-    ["Escape Selection" powershell-escape-selection t
+    ["Escape Selection" powershell-escape-selection
      :help "Escapes variables in the selection and extends existing escapes."]
-    ["DollarParen Selection" powershell-dollarparen-selection t
+    ["DollarParen Selection" powershell-dollarparen-selection
      :help "Wraps the selection in $()"]))
 
 ;; Map
@@ -746,6 +747,7 @@ characters that can't be set by the `syntax-table' alone.")
     (define-key map (kbd "C-c C-b") #'inf-powershell-send-buffer)
     (define-key map (kbd "C-c C-d") #'inf-powershell-cd-here)
     (define-key map (kbd "C-c C-r") #'inf-powershell-send-region)
+    (define-key map (kbd "C-c C-p") #'inf-powershell-set-prompt)
     (define-key map (kbd "RET")     #'powershell-auto-indent)
     (define-key map (kbd "TAB")     #'powershell-indent-line)
     (define-key map (kbd "M-\"")    #'powershell-doublequote-selection)
@@ -765,11 +767,9 @@ characters that can't be set by the `syntax-table' alone.")
 
 ;;;###autoload
 (define-derived-mode powershell-mode prog-mode "PS"
-  "Major mode for editing PowerShell scripts.
-
-\\{powershell-mode-map}
-Entry to this mode calls the value of `powershell-mode-hook' if
-that value is non-nil."
+  "Major mode for editing PowerShell scripts.\n
+Commands:
+\\{powershell-mode-map}"
   (powershell-setup-font-lock)
   (setq-local comment-start "#")
   (setq-local comment-start-skip "#+\\s*")

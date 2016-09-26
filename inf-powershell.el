@@ -401,7 +401,7 @@ non-nil and no process is found, then create one."
   (let ((proc (inf-powershell-shell-process t)))
     (inf-powershell-simple-send
      proc
-     (replace-regexp-in-string "[({|`]\\(\\s-*\n\\)" " " text nil nil 1))))
+     (replace-regexp-in-string "[({|`,]\\(\\s-*\n\\)" " " text nil nil 1))))
 
 
 ;; ------------------------------------------------------------
@@ -427,6 +427,14 @@ starting <# ... #> blocks."
   "Change directory of inferior powershell to `default-directory'."
   (interactive)
   (inf-powershell-send-text (concat "cd " default-directory "\n")))
+
+(defun inf-powershell-set-prompt (prompt)
+  (interactive "sNew Prompt: ")
+  (let ((proc (inf-powershell-shell-process nil)))
+    (when proc
+      (comint-simple-send proc (format "function prompt { '%s' }" prompt))
+      (with-current-buffer (process-buffer proc)
+        (setq-local inf-powershell-prompt-regex prompt)))))
 
 ;;;###autoload
 (defun inf-powershell (&optional buffer prompt-string)

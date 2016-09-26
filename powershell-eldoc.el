@@ -14,7 +14,7 @@
   :group 'powershell
   :prefix "powershell-eldoc-")
 
-(defcustom powershell-eldoc-def-files '()
+(defcustom powershell-eldoc-data-files nil
   "List of files containing function help strings used by function `eldoc-mode'.
 These are the strings function `eldoc-mode' displays as help for
 functions near point.  The format of the file must be exactly as
@@ -29,50 +29,61 @@ Where <fcn-name> is the name of the function to which <helper string> applies.
   :type '(repeat string)
   :group 'powershell-eldoc)
 
-;; @@FIXME: not actually customizable, ps1 script needs to be mod
-(defcustom powershell-eldoc-default-data
-  (eval-when-compile (expand-file-name "powershell-eldoc-data" "."))
-  "Build default obarray if no `powershell-eldoc-def-files' are nil."
-  :group 'powershell-eldoc
-  :type 'string)
+(defvar powershell-eldoc-default-data "eldoc-data.el"
+  "Where to build default obarray.")
 
-(defcustom powershell-eldoc-exe
-  (eval-when-compile (expand-file-name "build/eldoc.ps1" "."))
-  "Location of script to create obarray for eldoc."
-  :group 'powershell-eldoc
-  :type 'string)
+(defvar powershell-eldoc-script "build/eldoc.ps1"
+  "Location of script to create obarray for eldoc.")
 
 ;; ------------------------------------------------------------
-;;* Internal
+
+(when load-file-name
+  (let ((dir (file-name-directory load-file-name)))
+    (setq powershell-eldoc-script (expand-file-name powershell-eldoc-script dir))
+    (setq powershell-eldoc-default-data
+          (expand-file-name powershell-eldoc-default-data dir))))
 
 (defvar powershell-eldoc-obarray ()
   "Array for file entries by the function `eldoc'.
-`powershell-eldoc-def-files' entries are added into this array.")
+`powershell-eldoc-data-files' entries are added into this array.")
 
-(defun powershell-eldoc-default-setup ()
-  "Build default eldoc obarray. Return default data location."
-  (when (not (file-exists-p (concat powershell-eldoc-default-data ".el")))
-    (call-process "powershell" nil nil nil "-NoProfile" "-ExecutionPolicy"
-                  "ByPass" "-f" powershell-eldoc-exe)))
+(defun powershell-eldoc-default-enable ()
+  "Build default eldoc obarray using `powershell-eldoc-script'."
+  (if (not (file-exists-p powershell-eldoc-default-data))
+      (set-process-sentinel
+       (start-process "powershell" "*powershell-eldoc build*" "powershell"
+                      "-NoProfile" "-ExecutionPolicy" "ByPass"
+                      "-f" powershell-eldoc-script powershell-eldoc-default-data)
+       #'powershell-eldoc-build-sentinel)
+    (powershell-eldoc-enable (cons powershell-eldoc-default-data nil))))
+
+(defun powershell-eldoc-build-sentinel (proc msg)
+  "Load and enable eldoc when build finishes."
+  (message "%s: %s" (process-name proc) (replace-regexp-in-string "\n" "" msg))
+  (when (eq 0 (process-exit-status proc))
+    (powershell-eldoc-enable (cons powershell-eldoc-default-data nil))))
+
+(defun powershell-eldoc-enable (files)
+  "Load and enable eldoc."
+  (condition-case file
+      (mapc 'load files)
+    (error (message "Failed to load %s" file)))
+  (eldoc-mode))
+ 
+;;;###autoload
+(defun powershell-eldoc-setup ()
+  "Load the function documentation for use with eldoc."
+  (set (make-local-variable 'eldoc-documentation-function) #'powershell-eldoc-function)
+  (unless (vectorp powershell-eldoc-obarray)
+    (setq powershell-eldoc-obarray (make-vector 400 0))
+    (if powershell-eldoc-data-files
+        (powershell-eldoc-enable powershell-eldoc-data-files)
+      (powershell-eldoc-default-enable))))
 
 (defun powershell-eldoc-function ()
   "Return a documentation string appropriate for the current context or nil."
   (let ((word (thing-at-point 'symbol)))
     (if word
         (eval (intern-soft word powershell-eldoc-obarray)))))
-
-;;;###autoload
-(defun powershell-eldoc-setup ()
-  "Load the function documentation for use with eldoc."
-  (set (make-local-variable 'eldoc-documentation-function)
-       'powershell-eldoc-function)
-  (if (not (null powershell-eldoc-def-files))
-      (unless (vectorp powershell-eldoc-obarray)
-        (setq powershell-eldoc-obarray (make-vector 41 0))
-        (condition-case var (mapc 'load powershell-eldoc-def-files)
-          (error (message "*** powershell-setup-eldoc ERROR *** %s" var))))
-    (powershell-eldoc-default-setup)
-    (load powershell-eldoc-default-data))
-  (eldoc-mode))
 
 (provide 'powershell-eldoc)

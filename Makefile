@@ -10,12 +10,12 @@ build := $(shell cygpath -m $(build))
 endif
 
 eldoc_ps=$(build)/eldoc.ps1
-eldoc_el=posh-eldoc-data.el
+eldoc_el=eldoc-data.el
 
 auto ?= powershell-autoloads.el
 
-el = $(wildcard *.el) $(eldoc_el)
-el := $(filter-out $(auto), $(el))
+el = $(wildcard *.el)
+el := $(filter-out $(auto) $(eldoc_el), $(el))
 elc = $(el:.el=.elc)
 
 auto_flags= \
@@ -31,7 +31,7 @@ posh_flags= -NoProfile -ExecutionPolicy ByPass
 
 .PHONY: all $(auto) clean test
 
-all : $(eldoc_el) compile $(auto)
+all : compile $(auto)
 
 compile : $(elc)
 %.elc : %.el
