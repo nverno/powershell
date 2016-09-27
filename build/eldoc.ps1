@@ -36,8 +36,7 @@ function Get-Signature ($Cmd) {
         $List = @(Get-Command $Cmd -ErrorAction SilentlyContinue)
     }
     if (!$List[0] ) {
-        continue
-        # throw "Command '$Cmd' not found"
+        "Unable to open $Cmd"
     } else {
         foreach ($O in $List) {
             switch -regex ($O.GetType().Name) {
@@ -77,12 +76,26 @@ function Get-Signature ($Cmd) {
     }
 }
 
+function Clean-Eldoc ($str) {
+    ($str.Replace('\', '\\').Replace('"', '\"') `
+      -replace '\[|\]|<.*?>','') -replace ' +', ' ' `
+      -replace '[\n\r]+', '\n'
+}
 
 Get-Command Get-Process |
   ?{$_.CommandType -ne 'Alias' -and $_.Name -notlike '*:'} |
   %{$_.Name} |
   sort |
   %{("(set (intern ""$($_.Replace('\','\\'))"" powershell-eldoc-obarray)" +
-     " ""$(Get-Signature $_|%{$_.Replace('\','\\').Replace('"','\"')})"")"
-).Replace("`r`n"")",""")")} | 
-  ac $outfile
+     " ""($(Get-Signature $_) -replace '$_ +', '') | %{Clean-Eldoc $_})"")")}
+    
+    # | -replace '[\n\r]+', '\n'} | ac $outfile
+# Replace("`r`n"")",""")") 
+
+# Get-Command |
+#   ?{$_.CommandType -ne 'Alias' -and $_.Name -notlike '*:'} |
+#   %{$_.Name} |
+#   sort |
+#   %{("(set (intern ""$($_.Replace('\','\\'))"" powershell-eldoc-obarray)" +
+#      " ""$(Get-Signature $_|%{$_.Replace('\','\\').Replace('"','\"')})"")").`
+#        Replace("`r`n"")",""")")} | ac $outfile

@@ -76,7 +76,7 @@ function Get-Signature ($Cmd) {
     }
 }
 
-function Munge-Eldoc ($str) {
+function Clean-Eldoc ($str) {
     ($str.Replace('\', '\\').`
       Replace('"', '\"') -replace '\[|\]|<.*?>','') -replace ' +', ' '
 }
@@ -86,7 +86,7 @@ Get-Command Get-Process |
   %{$_.Name} |
   sort |
   %{("(puthash ""$($_.Replace('\', '\\'))"" " +
-     "'((sig . ""$(Get-Signature $_ | %{ Munge-Eldoc $_ })"")").`
+     "'((sig . ""$(Get-Signature $_ | %{ Clean-Eldoc $_ })"")").`
        Replace('`r`n"")"', '"")"') + "(pars . " +
     [System.String]::Join(" ", $(Get-Command $_ | 
       select -ExpandProperty Parameters | Select -expandProperty Keys)) +
