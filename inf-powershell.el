@@ -401,7 +401,7 @@ non-nil and no process is found, then create one."
   (let ((proc (inf-powershell-shell-process t)))
     (inf-powershell-simple-send
      proc
-     (replace-regexp-in-string "[({|`,]\\(\\s-*\n\\)" " " text nil nil 1))))
+     (replace-regexp-in-string "[-({|`,+*/]\\(\\s-*\n\\)" " " text nil nil 1))))
 
 
 ;; ------------------------------------------------------------

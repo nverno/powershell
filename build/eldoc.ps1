@@ -6,9 +6,6 @@
 .PARAMETER overwrite
   If non-nil overwrites output file.
 .NOTES
-  Get-Signature from powershell-mode.el on emacs-wiki.
-.LINK
-  https://www.emacswiki.org/emacs/PowerShell-Mode.el
 #>
 
 Param($outfile = $null, 
@@ -24,73 +21,102 @@ if (($overwrite -eq $null) -and (Test-Path $outfile)) {
     Write-Error "$outfile already exists" -ErrorAction "Stop"
 }
 
-function Get-Signature ($Cmd) {
-    if ($Cmd -is [Management.Automation.PSMethod]) {
-        $List = @($Cmd)
-    }
-    elseif ($Cmd -isnot [string]) {
-        throw ("Get-Signature {<method>|<command>}`n" +
-               "'$Cmd' is not a method or command")
-    }
-    else {
-        $List = @(Get-Command $Cmd -ErrorAction SilentlyContinue)
-    }
-    if (!$List[0] ) {
-        "Unable to open $Cmd"
-    } else {
-        foreach ($O in $List) {
-            switch -regex ($O.GetType().Name) {
-                'AliasInfo' {
-                    Get-Signature ($O.Definition)
-                }
-                # not sure what to do with ExternalScript
-                '(Cmdlet|ExternalScript)Info' {
-                    $O.Definition
-                }        
-                'F(unction|ilter)Info'{
-                    if ($O.Definition -match '^param *\(') {
-                        $t = [Management.Automation.PSParser]::tokenize($O.Definition,
-                                                                        [ref]$null)
-                        $c = 1;$i = 1
-                        while($c -and $i++ -lt $t.count) {
-                            switch ($t[$i].Type.ToString()) {
-                                GroupStart {$c++}
-                                GroupEnd   {$c--}
-                            }
-                        }
-                        # needs parsing
-                        $O.Definition.substring(0,$t[$i].start + 1)
-                    } 
-                    else { $O.Name }
-                }
-                'PSMethod' {
-                    foreach ($t in @($O.OverloadDefinitions)) {
-                        while (($b=$t.IndexOf('`1[[')) -ge 0) {
-                            $t=$t.remove($b,$t.IndexOf(']]')-$b+2)
-                        }
-                        $t
-                    }
-                }
-            }
+function Format-Eldoc ($cmd, $obarray="powershell-eldoc-obarray") {
+    Process {
+        if ($_.Name -notLike '*:') {
+            $name = $_.Name.ToLower().Replace('\', '\\')
+            $pars = Get-Help $_ | Select -ExpandProperty Syntax | 
+              Select -ExpandProperty syntaxItem |
+              Select -ExpandProperty Parameter | Select -uniq -ExpandProperty Name 
+            $pars = if ($pars -ne $null) {
+                '"' + [System.String]::Join('" "', $pars) + '"'
+            } else {""}
+            "(set (intern ""$name"" $obarray) '($pars))"
         }
     }
 }
 
-function Clean-Eldoc ($str) {
-    ($str.Replace('\', '\\').Replace('"', '\"') `
-      -replace '\[|\]|<.*?>','') -replace ' +', ' ' `
-      -replace '[\n\r]+', '\n'
-}
+# generate parameters for all commands
+Get-Command | Format-Eldoc $_ | ac $outfile
 
-Get-Command Get-Process |
-  ?{$_.CommandType -ne 'Alias' -and $_.Name -notlike '*:'} |
-  %{$_.Name} |
-  sort |
-  %{("(set (intern ""$($_.Replace('\','\\'))"" powershell-eldoc-obarray)" +
-     " ""($(Get-Signature $_) -replace '$_ +', '') | %{Clean-Eldoc $_})"")")}
-    
-    # | -replace '[\n\r]+', '\n'} | ac $outfile
-# Replace("`r`n"")",""")") 
+# function Get-Signature ($Cmd) {
+#     if ($Cmd -is [Management.Automation.PSMethod]) {
+#         $List = @($Cmd)
+#     }
+#     elseif ($Cmd -isnot [string]) {
+#         throw ("Get-Signature {<method>|<command>}`n" +
+#                "'$Cmd' is not a method or command")
+#     }
+#     else {
+#         $List = @(Get-Command $Cmd -ErrorAction SilentlyContinue)
+#     }
+#     if (!$List[0] ) {
+#         "Unable to open $Cmd"
+#     } else {
+#         foreach ($O in $List) {
+#             switch -regex ($O.GetType().Name) {
+#                 'AliasInfo' {
+#                     Get-Signature ($O.Definition)
+#                 }
+#                 # not sure what to do with ExternalScript
+#                 '(Cmdlet|ExternalScript)Info' {
+#                     $O.Definition
+#                 }        
+#                 'F(unction|ilter)Info'{
+#                     if ($O.Definition -match 'param *\(') {
+#                         $t = [Management.Automation.PSParser]::tokenize($O.Definition,
+#                                                                         [ref]$null)
+#                         $c = 1;$i = 1
+#                         while($c -and $i++ -lt $t.count -and $t[$i] -ne $null) {
+#                             switch ($t[$i].Type.ToString()) {
+#                                 GroupStart {$c++}
+#                                 GroupEnd   {$c--}
+#                             }
+#                         }
+#                         # needs parsing
+#                         $O.Definition.substring(0,$t[$i].start + 1)
+#                     } 
+#                     else { $O.Name }
+#                 }
+#                 'PSMethod' {
+#                     foreach ($t in @($O.OverloadDefinitions)) {
+#                         while (($b=$t.IndexOf('`1[[')) -ge 0) {
+#                             $t=$t.remove($b,$t.IndexOf(']]')-$b+2)
+#                         }
+#                         $t
+#                     }
+#                 }
+#             }
+#         }
+#     }
+# }
+
+# function Clean-Signature ($str) {
+#     ($str.Replace('\', '\\').Replace('"', '\"') `
+#       -replace '\A[ \n\r]+|[\n\r ]+$|\[|\]|<.*?>','') -replace ' +', ' ' `
+#       -replace '[\n\r]+', '\n'
+# }
+
+# function Format-Eldoc ($cmd, $obarray="powershell-eldoc-obarray") {
+#     Process {
+#         if ($_.CommandType -ne 'Alias' -and $_.Name -notLike '*:') {
+#             $name = $_.Name
+#             "(set (intern ""$($name.Replace('\','\\'))"" $obarray)" +
+#             " ""$(Get-Signature $name | %{Clean-Signature($_ -replace $name, '')})"")"
+#         }
+#     }
+# }
+
+# Get-Command Get-Process |
+#   ?{$_.CommandType -ne 'Alias' -and $_.Name -notlike '*:'} |
+#   %{$_.Name} |
+#   sort |
+#   %{("(puthash ""$($_.Replace('\', '\\'))"" " +
+#      "'((sig . ""$(Get-Signature $_ | %{ Clean-Eldoc $_ })"")").`
+#        Replace('`r`n"")"', '"")"') + "(pars . " +
+#     [System.String]::Join(" ", $(Get-Command $_ | 
+#       select -ExpandProperty Parameters | Select -expandProperty Keys)) +
+#     "))"}
 
 # Get-Command |
 #   ?{$_.CommandType -ne 'Alias' -and $_.Name -notlike '*:'} |

@@ -1,13 +1,38 @@
-;;; powershell-eldoc.el --- Eldoc support for powershell-mode  -*- lexical-binding: t; -*-
+;;; powershell-eldoc --- Eldoc support for powershell mode  -*- lexical-binding: t; -*-
+
+;; Author: Noah Peart <noah.v.peart@gmail.com>
+;; URL: https://github.com/nverno/powershell
+;; Package-Requires: 
+;; Copyright (C) 2016, Noah Peart, all rights reserved.
+;; Created: 30 September 2016
+
+;; This file is not part of GNU Emacs.
+;;
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 3, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
+;; Floor, Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
 
-;; Separated from powershell.el.  Doesn't work very well in its current state.
+;; Eldoc support for powershell-mode
 
 ;;; Code:
 
 (eval-when-compile
-  (require 'thingatpt))
+  (require 'thingatpt)
+  (require 'subr-x))
+(require 'powershell-capf)
 
 (defgroup powershell-eldoc nil
   "Eldoc support for powershell-mode."
@@ -15,17 +40,14 @@
   :prefix "powershell-eldoc-")
 
 (defcustom powershell-eldoc-data-files nil
-  "List of files containing function help strings used by function `eldoc-mode'.
-These are the strings function `eldoc-mode' displays as help for
-functions near point.  The format of the file must be exactly as
-follows or who knows what happens.
+  "List of files containing metadata for `eldoc-mode'.
+They have the following format.
 
-   (set (intern \"<fcn-name1>\" powershell-eldoc-obarray) \"<helper string1>\")
-   (set (intern \"<fcn-name2>\" powershell-eldoc-obarray) \"<helper string2>\")
+   (set (intern \"<fcn-name1>\" powershell-eldoc-obarray) '(<list of parameters1>))
+   (set (intern \"<fcn-name2>\" powershell-eldoc-obarray) (<list of parameters2>))
 ...
 
-Where <fcn-name> is the name of the function to which <helper string> applies.
-      <helper-string> is the string to display when point is near <fcn-name>."
+Where <fcn-name> is the name of the function to which has <list of parameters1>."
   :type '(repeat string)
   :group 'powershell-eldoc)
 
@@ -50,11 +72,14 @@ Where <fcn-name> is the name of the function to which <helper string> applies.
 (defun powershell-eldoc-default-enable ()
   "Build default eldoc obarray using `powershell-eldoc-script'."
   (if (not (file-exists-p powershell-eldoc-default-data))
-      (set-process-sentinel
-       (start-process "powershell" "*powershell-eldoc build*" "powershell"
-                      "-NoProfile" "-ExecutionPolicy" "ByPass"
-                      "-f" powershell-eldoc-script powershell-eldoc-default-data)
-       #'powershell-eldoc-build-sentinel)
+      (progn
+        (message "Creating powershell-eldoc data in %s"
+                 powershell-eldoc-default-data)
+        (set-process-sentinel
+         (start-process "powershell" "*powershell-eldoc build*" "powershell"
+                        "-NoProfile" "-ExecutionPolicy" "ByPass"
+                        "-f" powershell-eldoc-script powershell-eldoc-default-data)
+         #'powershell-eldoc-build-sentinel))
     (powershell-eldoc-enable (cons powershell-eldoc-default-data nil))))
 
 (defun powershell-eldoc-build-sentinel (proc msg)
@@ -66,25 +91,33 @@ Where <fcn-name> is the name of the function to which <helper string> applies.
 (defun powershell-eldoc-enable (files)
   "Load and enable eldoc."
   (condition-case file
-      (mapc 'load files)
-    (error (message "Failed to load %s" file)))
-  (eldoc-mode))
- 
+      (progn
+        (mapc 'load files)
+        (eldoc-mode))
+    (error (message "Failed to load %s" file))))
+
 ;;;###autoload
 (defun powershell-eldoc-setup ()
   "Load the function documentation for use with eldoc."
   (set (make-local-variable 'eldoc-documentation-function) #'powershell-eldoc-function)
   (if (not (vectorp powershell-eldoc-obarray))
-    (setq powershell-eldoc-obarray (make-vector 1400 0))
-    (if powershell-eldoc-data-files
-        (powershell-eldoc-enable powershell-eldoc-data-files)
-      (powershell-eldoc-default-enable))
+      (progn
+        (setq powershell-eldoc-obarray (make-vector 1400 0))
+        (if powershell-eldoc-data-files
+            (powershell-eldoc-enable powershell-eldoc-data-files)
+          (powershell-eldoc-default-enable)))
     (eldoc-mode)))
 
 (defun powershell-eldoc-function ()
-  "Return a documentation string appropriate for the current context or nil."
-  (let ((word (thing-at-point 'symbol)))
-    (if word
-        (eval (intern-soft word powershell-eldoc-obarray)))))
+  "Return parameters for current function."
+  (when-let ((func (or (powershell-function-name))))
+    (and (not (car func))
+         (let* ((name (cdr func))
+                (pars (eval (intern-soft (downcase name) powershell-eldoc-obarray))))
+           (when pars
+             (format "%s: %s" (propertize name 'face 'font-lock-function-name-face)
+                     (concat " -" (mapconcat 'identity pars " -"))))))))
 
 (provide 'powershell-eldoc)
+
+;;; powershell-eldoc.el ends here

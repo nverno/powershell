@@ -5,6 +5,7 @@
 ;;               http://www.emacswiki.org/emacs/Rick_Bielawski
 
 ;; Author: Frédéric Perrin <frederic (dot) perrin (arobas) resel (dot) fr>
+
 ;; URL: http://github.com/nverno/powershell
 ;; Version: 0.3
 ;; Package-Requires: ((emacs "24"))
@@ -32,6 +33,7 @@
 (eval-when-compile
   (require 'thingatpt))
 (require 'inf-powershell)
+(require 'powershell-capf)
 (autoload 'powershell-eldoc-setup "powershell-eldoc")
 
 (defgroup powershell nil
@@ -749,7 +751,6 @@ characters that can't be set by the `syntax-table' alone.")
     (define-key map (kbd "C-c C-r") #'inf-powershell-send-region)
     (define-key map (kbd "C-c C-p") #'inf-powershell-set-prompt)
     (define-key map (kbd "RET")     #'powershell-auto-indent)
-    (define-key map (kbd "TAB")     #'powershell-indent-line)
     (define-key map (kbd "M-\"")    #'powershell-doublequote-selection)
     (define-key map (kbd "M-'")     #'powershell-quote-selection)
     (define-key map (kbd "C-'")     #'powershell-unquote-selection)
@@ -785,6 +786,9 @@ Commands:
   (add-hook 'pre-abbrev-expand-hook
             #'powershell-pre-abbrev-expand-hook nil t)
 
+  (setq-local completion-ignore-case t)
+  (add-hook 'completion-at-point-functions #'powershell-capf nil t)
+  
   (when powershell-use-eldoc (powershell-eldoc-setup)))
 
 ;;;###autoload
