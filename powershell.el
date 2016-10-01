@@ -81,13 +81,6 @@ Ending either with an explicit backtick, or with a pipe."
   :group 'powershell
   :type 'sexp)
 
-;; @@FIXME: this doesn't seem right
-;; The column number will be off whenever tabs are used. Since this is
-;; the default in this mode, we will not capture the column number.
-;; (setq compilation-error-regexp-alist
-;;       (cons '("At \\(.*\\):\\([0-9]+\\) char:\\([0-9]+\\)" 1 2)
-;;             compilation-error-regexp-alist))
-
 (defcustom powershell-use-eldoc t
   "Setup eldoc if non-nil."
   :group 'powershell

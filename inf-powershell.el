@@ -537,7 +537,7 @@ See the help for `shell' for more details.  \(Type
   
   ;; The launch hooks for powershell has not (yet?) been implemented
   ;;(run-hooks 'powershell-launch-hook)
-
+  
   ;; return the buffer created
   buffer)
 
