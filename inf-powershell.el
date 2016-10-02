@@ -436,6 +436,9 @@ starting <# ... #> blocks."
       (with-current-buffer (process-buffer proc)
         (setq-local inf-powershell-prompt-regex prompt)))))
 
+(defvar inf-powershell-mode-hook nil
+  "Hook run after `inf-powershell'.")
+
 ;;;###autoload
 (defun inf-powershell (&optional buffer prompt-string)
   "Run an inferior PowerShell.
@@ -531,12 +534,26 @@ See the help for `shell' for more details.  \(Type
     (add-hook 'comint-preoutput-filter-functions
               'inf-powershell-preoutput-filter-for-prompt nil t)
 
+    ;; for shell-resync-dirs
+    (setq-local comint-process-echoes nil)
+
+    ;; start in current default-directory
+    (inf-powershell-invoke-command-silently
+     proc (format "cd \"%s\"" default-directory) 1)
+
+    ;; start in default-directory
+    (shell-resync-dirs)
+
     ;; send a carriage-return  (get the prompt)
     (comint-send-input)
     (accept-process-output proc 1))
-  
-  ;; The launch hooks for powershell has not (yet?) been implemented
-  ;;(run-hooks 'powershell-launch-hook)
+
+  ;; completion at point
+  (add-hook 'completion-at-point-functions #'powershell-capf nil t)
+
+  ;; set mode and run hooks
+  (setq major-mode 'inf-powershell-mode)
+  (run-hooks 'inf-powershell-mode-hook)
   
   ;; return the buffer created
   buffer)
