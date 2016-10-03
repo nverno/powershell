@@ -34,7 +34,6 @@
   (require 'thingatpt))
 (require 'inf-powershell)
 (require 'powershell-completion)
-(autoload 'powershell-eldoc-setup "powershell-eldoc")
 
 (defgroup powershell nil
   "PowerShell scripting and programming utilities."
@@ -80,6 +79,14 @@ Ending either with an explicit backtick, or with a pipe."
   "Default command used to invoke a powershell script (using compile)."
   :group 'powershell
   :type 'sexp)
+
+(defcustom powershell-use-completion t
+  "If non-nil, enable completion backend by builing completion data.
+This runs the powershell data script in the background if the data file doesn't
+exists.  The completion data is necessary for eldoc, company, and completion at
+point functions to work."
+  :group 'powershell
+  :type 'boolean)
 
 (defcustom powershell-use-eldoc t
   "Setup eldoc if non-nil."
@@ -743,6 +750,7 @@ characters that can't be set by the `syntax-table' alone.")
     (define-key map (kbd "C-c C-d") #'inf-powershell-cd-here)
     (define-key map (kbd "C-c C-r") #'inf-powershell-send-region)
     (define-key map (kbd "C-c C-p") #'inf-powershell-set-prompt)
+    (define-key map (kbd "C-c C-z") #'inf-powershell-switch-buffer)
     (define-key map (kbd "RET")     #'powershell-auto-indent)
     (define-key map (kbd "M-\"")    #'powershell-doublequote-selection)
     (define-key map (kbd "M-'")     #'powershell-quote-selection)
@@ -750,7 +758,6 @@ characters that can't be set by the `syntax-table' alone.")
     (define-key map (kbd "C-\"")    #'powershell-unquote-selection)
     (define-key map (kbd "M-`")     #'powershell-escape-selection)
     (define-key map (kbd "C-$")     #'powershell-dollarparen-selection)
-    (define-key map (kbd "C-c C-z") #'powershell)
     (define-key map (kbd "C-c C-e") #'powershell-ise)
     (define-key map (kbd "C-c ?")   #'powershell-describe-command)
     (define-key map (kbd "C-c C-?") #'powershell-describe-command-ss64)
@@ -782,7 +789,8 @@ Commands:
   (setq-local completion-ignore-case t)
   (add-hook 'completion-at-point-functions #'powershell-capf nil t)
   
-  (when powershell-use-eldoc (powershell-eldoc-setup)))
+  (when powershell-use-completion
+    (powershell-completion-setup)))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.ps[dm]?1\\'" . powershell-mode))

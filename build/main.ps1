@@ -3,7 +3,8 @@
  Write hash tables with metadata for powershell objects.
 #>
 
-Param($outfile)
+Param($outfile,
+      $append=$true)
 
 if ($outfile -eq $null) {
     $outfile = [System.IO.Path]::GetFullPath("$PSScriptroot\posh-data.el")
@@ -14,4 +15,6 @@ if ($outfile -eq $null) {
 $helpers = [System.IO.Path]::GetFullPath("$PSscriptroot\helpers.ps1")
 . $helpers
 
-Write-EmacsHash | ac $outfile
+if (!(Test-Path $outfile) -or $append) {
+    Write-EmacsHash | ac $outfile
+}

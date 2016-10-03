@@ -383,7 +383,7 @@ This insures we get and display the prompt."
   (comint-simple-send proc "prompt\n"))
 
 (defun inf-powershell-shell-process (force)
-  "Return inferior powershell shell process for interaction.  If FORCE is 
+  "Return inferior powershell shell process associated with buffer.  If FORCE is 
 non-nil and no process is found, then create one."
   (if (process-live-p inf-powershell-shell-process)
       inf-powershell-shell-process
@@ -440,11 +440,32 @@ starting <# ... #> blocks."
       (with-current-buffer (process-buffer proc)
         (setq-local inf-powershell-prompt-regex prompt)))))
 
-(defvar inf-powershell-default-prompt
-  "function prompt {}"
-  )
+(defvar-local inf-powershell-source-buffer nil)
+
+(defun inf-powershell-switch-buffer ()
+  "Switch between source and inferior powershell buffers."
+  (interactive)
+  (if inf-powershell-source-buffer
+      (pop-to-buffer inf-powershell-source-buffer)
+    (let* ((cb (current-buffer))
+           (proc (inf-powershell-shell-process t))
+           (buff (process-buffer proc)))
+      (pop-to-buffer buff)
+      (setq inf-powershell-source-buffer cb))))
+
 (defvar inf-powershell-mode-hook nil
   "Hook run after `inf-powershell'.")
+
+(defvar inf-powershell-mode-map
+  (let ((km (make-sparse-keymap)))
+    (set-keymap-parent km shell-mode-map)
+    (define-key km (kbd "C-c C-z") #'inf-powershell-switch-buffer)
+    (define-key km (kbd "C-c c-p") #'inf-powershell-set-prompt)
+    km)
+  "Inferior powershell keymap.")
+
+;; (define-derived-mode inf-powershell-mode shell-mode "PowerShell"
+;;   "Major mode for interacting with inferior powershell.\\<shell-mode-map>")
 
 ;;;###autoload
 (defun inf-powershell (&optional buffer prompt-string)
@@ -563,8 +584,10 @@ See the help for `shell' for more details.  \(Type
   ;; completion at point
   (add-hook 'completion-at-point-functions #'powershell-capf nil t)
 
+  ;; FIXME: derived-mode
   ;; set mode and run hooks
   (setq major-mode 'inf-powershell-mode)
+  (use-local-map inf-powershell-mode-map)
   (run-hooks 'inf-powershell-mode-hook)
   
   ;; return the buffer created

@@ -64,7 +64,7 @@ function Write-EmacsVariable ($var) {
     gci variable:$var | 
       %{"(puthash ""$($_.Name)"" "+
         "'((type . ""Variable"") (value . ""$_.Value"") "+
-        "(annot . ""$($_.Visibility)"") posh-variables)"}
+        "(annot . ""$($_.Visibility)"")) posh-variables)"}
 }
 
 function Format-EmacsEnv($var) {
