@@ -53,15 +53,19 @@ window. In some cases callers might want to get the results with the
 newlines and formatting removed. Set this to true, to do that.
 Becomes buffer-local.")
 
-(defvar inf-powershell-prompt-regex  "PS [^#$%>]+> "
+(defvar inf-powershell-default-prompt "function prompt { \"$(pwd)`nPS > \" }"
+  "Default prompt function.")
+
+(defvar inf-powershell-prompt-regex "^[^\n]*\nPS[^#$%>]*> " ;; "PS[^#$%>]*> "
   "Regexp to match the powershell prompt. Becomes buffer local when shell starts.
 Powershell uses this regex to determine when a command has
 completed.  Therefore, you need to set this appropriately if you
 explicitly change the prompt function in powershell.  Any value
 should include a trailing space, if the powershell prompt uses a
-trailing space, but should not include a trailing newline.
+trailing space, but should not include a trailing newline.")
 
-The default value will match the default PowerShell prompt.")
+;; (defvar inf-powershell-comint-regexp "^[^\n]*\nPS[^#$%>]*> "
+;;   "Regexp to match prompt for comint.  Useful for font-locking multiline prompt.")
 
 (defvar inf-powershell-command-timeout-seconds 12
   "The timeout for a powershell command. Powershell will wait this long
@@ -436,6 +440,9 @@ starting <# ... #> blocks."
       (with-current-buffer (process-buffer proc)
         (setq-local inf-powershell-prompt-regex prompt)))))
 
+(defvar inf-powershell-default-prompt
+  "function prompt {}"
+  )
 (defvar inf-powershell-mode-hook nil
   "Hook run after `inf-powershell'.")
 
@@ -519,6 +526,11 @@ See the help for `shell' for more details.  \(Type
     ;; important because later, after sending a command to the
     ;; shell, the scanning logic that grabs the output looks for
     ;; the prompt string to determine that the output is complete.
+
+    ;; send default prompt function
+    (inf-powershell-invoke-command-silently proc inf-powershell-default-prompt 0.5)
+    (setq-local comint-prompt-regexp inf-powershell-prompt-regex)
+
     (when prompt-string
       (progn
         (comint-simple-send

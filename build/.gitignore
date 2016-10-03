@@ -1,4 +1,4 @@
-powershell-eldoc.el
+*-data.el
 *.csv
 *.txt
 *.dat

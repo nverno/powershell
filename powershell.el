@@ -33,7 +33,7 @@
 (eval-when-compile
   (require 'thingatpt))
 (require 'inf-powershell)
-(require 'powershell-capf)
+(require 'powershell-completion)
 (autoload 'powershell-eldoc-setup "powershell-eldoc")
 
 (defgroup powershell nil

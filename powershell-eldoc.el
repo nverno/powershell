@@ -116,7 +116,7 @@ Where <fcn-name> is the name of the function to which has <list of parameters1>.
                 (pars (eval (intern-soft (downcase name) powershell-eldoc-obarray))))
            (when pars
              (format "%s: %s" (propertize name 'face 'font-lock-function-name-face)
-                     (concat " -" (mapconcat 'identity pars " -"))))))))
+                     (concat "-" (mapconcat 'identity pars " -"))))))))
 
 (provide 'powershell-eldoc)
 
