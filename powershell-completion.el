@@ -49,6 +49,9 @@
 (defvar powershell-data-script "build/main.ps1"
   "Script to create data files.")
 
+(defvar powershell-data-loaded nil
+  "True if data files have been loaded.")
+
 (defvar powershell-log-buffer nil)
 
 ;; ------------------------------------------------------------
@@ -140,8 +143,27 @@
 (defun powershell-capf--fn-annotation (obj)
   (or (cdr (assoc 'type (gethash obj posh-functions)))))
 
+;; If object if type "Function" output its definition in "*Posh-Definition*" buffer
+;; for company-location.
+;; FIXME: for external scripts, open file.
+(defun powershell-capf--fn-location (obj)
+  (let ((fn (powershell-lookup-function obj)))
+    (pcase (cdr (assoc 'type fn))
+      (`"Function"
+       (let ((buff (get-buffer-create "*Posh-Definition*"))
+             (inhibit-read-only t))
+         (set-buffer buff)
+         (erase-buffer)
+         (call-process-shell-command
+          (format "powershell -c \"Get-Command %s|%%{$_.Definition}\"" obj) nil buff nil)
+         (powershell-mode)
+         (indent-region (point-min) (point-max))
+         (cons buff 1)))
+      ;; external scripts
+      (_ nil))))
+
 (defun powershell-capf ()
-  (let ((bnds (bounds-of-thing-at-point 'symbol)))
+  (when-let ((bnds (bounds-of-thing-at-point 'symbol)))
     (cond
      ;; let comint complete files
      ((or (eq (char-after (car bnds)) ?/)
@@ -153,8 +175,7 @@
         (and (not (car func))
              (let ((pars (cdr (assoc 'params (powershell-lookup-function (cdr func))))))
                (and pars
-                    (list (1+ (car bnds)) (cdr bnds) pars
-                          :company-require-match nil))))))
+                    (list (1+ (car bnds)) (cdr bnds) pars))))))
      ;; $ variable
      ((eq (char-after (car bnds)) ?$)
       (goto-char (car bnds))
@@ -167,24 +188,17 @@
            (t
             (list (1+ (car bnds)) (cdr bnds) posh-variables
                   :company-docsig #'powershell-capf--var-docsig
-                  :annotation-function #'powershell-capf--var-annotation
-                  :company-require-match nil)))
+                  :annotation-function #'powershell-capf--var-annotation)))
         (goto-char (cdr bnds))))
-     ;; either $drive:| or possible function
+     ;; try function
      ((when-let ((func (powershell-function-name)))
         (and (not (car func))
-             ;; env:
-             (or (and (compare-strings "env" nil nil (cdr func) nil nil t)
-                      (list (car bnds) (cdr bnds) posh-env
-                            :annotation-function #'powershell-capf--var-annotation
-                            :company-docsig #'powershell-capf--var-docsig
-                            :company-require-match nil))
-                 ;; try function/cmdlet
-                 (list (car bnds) (cdr bnds) posh-functions
-                       :company-docsig #'powershell-capf--fn-docsig
-                       :company-doc-buffer #'powershell-capf--doc-buffer
-                       :annotation-function #'powershell-capf--fn-annotation
-                       :company-require-match nil))))))))
+             (list (car bnds) (cdr bnds) posh-functions
+                   :company-docsig #'powershell-capf--fn-docsig
+                   :company-doc-buffer #'powershell-capf--doc-buffer
+                   :annotation-function #'powershell-capf--fn-annotation
+                   :company-location #'powershell-capf--fn-location
+                   :company-require-match nil)))))))
 
 ;; ------------------------------------------------------------
 ;;* Build default data file
@@ -219,7 +233,8 @@
       (progn
         (mapc 'load files)
         (when powershell-use-eldoc
-          (eldoc-mode)))
+          (eldoc-mode 1))
+        (setq powershell-data-loaded t))
     (error (powershell-log (format "Failed to load %s" file)))))
 
 ;;;###autoload
@@ -227,9 +242,11 @@
   "Setup completion data for powershell.  This runs the default program
 to generate `powershell-default-data-file' if it doesn't exist."
   (setq-local eldoc-documentation-function #'powershell-eldoc-function)
-  (if (not powershell-data-files)
-      (powershell-build-default-data)
-    (powershell-load-data powershell-data-files)))
+  (if powershell-data-loaded
+      (eldoc-mode 1)
+    (if (not powershell-data-files)
+        (powershell-build-default-data)
+      (powershell-load-data powershell-data-files))))
 
 ;; ------------------------------------------------------------
 ;;* Eldoc
