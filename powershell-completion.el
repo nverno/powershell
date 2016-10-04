@@ -178,18 +178,17 @@
                     (list (1+ (car bnds)) (cdr bnds) pars))))))
      ;; $ variable
      ((eq (char-after (car bnds)) ?$)
-      (goto-char (car bnds))
-      (prog1
-          (cond
-           ((looking-at-p "$env:")
-            (list (+ 5 (car bnds)) (cdr bnds) posh-env
-                  :company-docsig #'powershell-capf--env-docsig
-                  :annotation-function #'powershell-capf--env-annotation))
-           (t
-            (list (1+ (car bnds)) (cdr bnds) posh-variables
-                  :company-docsig #'powershell-capf--var-docsig
-                  :annotation-function #'powershell-capf--var-annotation)))
-        (goto-char (cdr bnds))))
+      (save-excursion
+        (goto-char (car bnds))
+       (cond
+        ((looking-at-p "$env:")
+         (list (+ 5 (car bnds)) (cdr bnds) posh-env
+               :company-docsig #'powershell-capf--env-docsig
+               :annotation-function #'powershell-capf--env-annotation))
+        (t
+         (list (1+ (car bnds)) (cdr bnds) posh-variables
+               :company-docsig #'powershell-capf--var-docsig
+               :annotation-function #'powershell-capf--var-annotation)))))
      ;; try function
      ((when-let ((func (powershell-function-name)))
         (and (not (car func))

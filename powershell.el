@@ -41,7 +41,7 @@
   :group 'languages
   :prefix "powershell-")
 
-(defcustom powershell-indent 4
+(defcustom powershell-indent 2
   "Amount of horizontal space to indent.
 After, for instance, an opening brace"
   :type 'integer

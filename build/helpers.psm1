@@ -37,34 +37,34 @@ function Format-EmacsParams ($cmd) {
 }
 
 # output mappings for alias(es) -> definitions
-function Write-EmacsAlias($alias) {
+function Write-EmacsAlias($alias, $hash="posh-functions") {
     gci alias:$alias | 
       %{("(puthash ""$($_.Name)"" "+
          "'((alias . ""$($_.Definition)"") "+
-         "(type . ""Alias<$($_.Definition)>"")) posh-functions)").Replace('\', '\\')}
+         "(type . ""Alias<$($_.Definition)>"")) $hash)").Replace('\', '\\')}
 }
 
 # format function(s) info as hash
-function Write-EmacsFunction () {
+function Write-EmacsFunction ($hash = "posh-functions") {
     Process {
         if ($_.CommandType -eq "Alias") {
-            Write-EmacsAlias $_
+            Write-EmacsAlias $_ $hash
         } elseif ($_.Name -notLike '*:') {
             %{("(puthash ""$($_.Name.Replace('\','\\'))"" "+
                "'((type . ""$($_.CommandType)"") "+
                "(synopsis . "+
                """$(Get-Help $_|%{$_.Synopsis.Replace('\','\\').Replace('`"','\`"')})"")"+
-               "(params . ($(Format-EmacsParams $_)))) posh-functions)")}
+               "(params . ($(Format-EmacsParams $_)))) $hash)")}
         }
     }
 }
 
 # format variables
-function Write-EmacsVariable ($var) {
+function Write-EmacsVariable ($var, $hash="posh-variables") {
     gci variable:$var | 
       %{"(puthash ""$($_.Name)"" "+
         "'((type . ""Variable"") (value . ""$_.Value"") "+
-        "(annot . ""$($_.Visibility)"")) posh-variables)"}
+        "(annot . ""$($_.Visibility)"")) $hash)"}
 }
 
 function Format-EmacsEnv($var) {
@@ -75,10 +75,10 @@ function Format-EmacsEnv($var) {
     $res.replace('\','\\').replace('"','\"')
 }
 
-function Write-EmacsEnv ($var) {
+function Write-EmacsEnv ($var, $hash="posh-env") {
     gci env:$var |
       %{"(puthash ""$($_.Name.Replace('\','\\').Replace('`"','\`"'))"" "+
-        "'((type . ""Env"") (value . ""$(Format-EmacsEnv $_)"") (annot . `"Env`")) posh-env)"}
+        "'((type . ""Env"") (value . ""$(Format-EmacsEnv $_)"") (annot . `"Env`")) $hash)"}
 }
 
 # init hash

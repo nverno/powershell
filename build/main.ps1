@@ -12,8 +12,8 @@ if ($outfile -eq $null) {
     $outfile = [System.IO.Path]::GetFullPath("$outfile")
 }
 
-$helpers = [System.IO.Path]::GetFullPath("$PSscriptroot\helpers.ps1")
-. $helpers
+$helpers = [System.IO.Path]::GetFullPath("$PSscriptroot\helpers.psm1")
+Import-Module $helpers
 
 if (!(Test-Path $outfile) -or $append) {
     Write-EmacsHash | ac $outfile
