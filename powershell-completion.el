@@ -38,6 +38,8 @@
 (eval-when-compile
   (require 'subr-x))
 (require 'company)
+(declare-function powershell-mode "powershell")
+(defvar powershell-use-eldoc)
 
 (defvar powershell-data-files nil
   "Data files with data for `posh-functions', `posh-variables', `posh-env'.")
