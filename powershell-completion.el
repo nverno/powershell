@@ -32,7 +32,6 @@
 ;; Todo:
 ;;
 ;; - Allow adding to add to existing hashes
-;; - Switch eldoc to use hashes instead of obarray
 
 ;;; Code:
 

@@ -32,7 +32,7 @@
 (eval-when-compile
   (require 'thingatpt)
   (require 'subr-x))
-(require 'powershell-capf)
+(require 'powershell-completion)
 
 (defgroup powershell-eldoc nil
   "Eldoc support for powershell-mode."
