@@ -31,7 +31,7 @@
 ;;
 ;; Todo:
 ;;
-;; - Allow adding to add to existing hashes
+;; - Add to existing hashes
 
 ;;; Code:
 
