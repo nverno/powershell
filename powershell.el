@@ -108,18 +108,13 @@ passes '-online' argument."
   (interactive
    (let* ((sym (symbol-at-point))
           (sym (and sym (symbol-name sym)))
-          (enable-recursive-minibuffers t)
-          val)
-     (setq val (read-string (if sym
-                                (format "Describe command (default %s): " sym)
-                              "Describe command: ")))
-     (list (if (string= val "") sym val))))
+          (enable-recursive-minibuffers t))
+     (list (read-string "Describe command: " sym))))
   (if current-prefix-arg
-      (call-process powershell-exe nil 0 nil "Get-Help"
-                    command "-online")
-    (let ((buff "*powershell help*"))
-      (with-output-to-temp-buffer buff
-        (call-process powershell-exe nil buff t "Get-Help" command)))))
+      (call-process powershell-exe nil 0 nil "Get-Help" command "-online")
+    (call-process powershell-exe nil "*powershell help*" t "Get-Help" command)
+    (pop-to-buffer "*powershell help*")
+    (goto-char (point-min))))
 
 (defun powershell-describe-command-ss64 (command)
   "Lookup help for COMMAND online at 'http://ss64.com/ps'
@@ -759,7 +754,7 @@ characters that can't be set by the `syntax-table' alone.")
     (define-key map (kbd "M-`")     #'powershell-escape-selection)
     (define-key map (kbd "C-$")     #'powershell-dollarparen-selection)
     (define-key map (kbd "C-c C-e") #'powershell-ise)
-    (define-key map (kbd "C-c ?")   #'powershell-describe-command)
+    (define-key map (kbd "M-?")     #'powershell-describe-command)
     (define-key map (kbd "C-c C-?") #'powershell-describe-command-ss64)
     (define-key map (kbd "<f5>")    #'powershell-compile)
     (define-key map (kbd "C-<f5>")  #'powershell-compile-admin)
