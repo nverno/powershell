@@ -10,9 +10,9 @@ function Get-EmacsTopics () {
 }
 
 function Get-EmacsDrives () {
-    @(gci env: | %{$_.Name}),
-    @(gci variable: | %{$_.Name}),
-    @(gci alias: | %{$_.Name})
+    @(Get-ChildItem env: | %{$_.Name}),
+    @(Get-ChildItem variable: | %{$_.Name}),
+    @(Get-ChildItem alias: | %{$_.Name})
 }
 
 # return possible variables for prefix
@@ -27,9 +27,10 @@ function Get-EmacsHelp ($func) {
 # format list of paramters for $cmd
 function Format-EmacsParams ($cmd) {
     if ($cmd.Name -notLike '*:') {
-        $pars = Get-Help $cmd | Select -ExpandProperty Syntax | 
-          Select -ExpandProperty syntaxItem |
-          Select -ExpandProperty Parameter | Select -uniq -ExpandProperty Name 
+        $pars = Get-Help $cmd | Select-Object -ExpandProperty Syntax | 
+          Select-Object -ExpandProperty syntaxItem |
+          Select-Object -ExpandProperty Parameter | 
+          Select-Object -uniq -ExpandProperty Name 
         if ($pars -ne $null) {
             '"' + [System.String]::Join('" "', $pars) + '"'
         } else {""}
@@ -38,7 +39,7 @@ function Format-EmacsParams ($cmd) {
 
 # output mappings for alias(es) -> definitions
 function Write-EmacsAlias($alias, $hash="posh-functions") {
-    gci alias:$alias | 
+    Get-ChildItem alias:$alias | 
       %{("(puthash ""$($_.Name)"" "+
          "'((alias . ""$($_.Definition)"") "+
          "(type . ""Alias<$($_.Definition)>"")) $hash)").Replace('\', '\\')}
@@ -61,7 +62,7 @@ function Write-EmacsFunction ($hash = "posh-functions") {
 
 # format variables
 function Write-EmacsVariable ($var, $hash="posh-variables") {
-    gci variable:$var | 
+    Get-ChildItem variable:$var | 
       %{"(puthash ""$($_.Name)"" "+
         "'((type . ""Variable"") (value . ""$_.Value"") "+
         "(annot . ""$($_.Visibility)"")) $hash)"}
@@ -76,7 +77,7 @@ function Format-EmacsEnv($var) {
 }
 
 function Write-EmacsEnv ($var, $hash="posh-env") {
-    gci env:$var |
+    Get-ChildItem env:$var |
       %{"(puthash ""$($_.Name.Replace('\','\\').Replace('`"','\`"'))"" "+
         "'((type . ""Env"") (value . ""$(Format-EmacsEnv $_)"") (annot . `"Env`")) $hash)"}
 }
