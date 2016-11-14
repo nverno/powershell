@@ -8,6 +8,7 @@
 
 (eval-when-compile (require 'thingatpt))
 (require 'shell)
+(autoload 'powershell-capf "powershell-completion")
 
 (defgroup inf-powershell nil
   "Run inferior powershell process."
