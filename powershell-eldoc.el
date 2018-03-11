@@ -110,7 +110,7 @@ Where <fcn-name> is the name of the function to which has <list of parameters1>.
 
 (defun powershell-eldoc-function ()
   "Return parameters for current function."
-  (when-let ((func (or (powershell-function-name))))
+  (when-let* ((func (or (powershell-function-name))))
     (and (not (car func))
          (let* ((name (cdr func))
                 (pars (eval (intern-soft (downcase name) powershell-eldoc-obarray))))

@@ -111,7 +111,7 @@
 
 ;; lookup function/cmdlet: if alias lookup up its definition
 (defun powershell-lookup-function (func)
-  (when-let ((val (gethash func posh-functions)))
+  (when-let* ((val (gethash func posh-functions)))
     (if (assoc 'alias val)
         (gethash (cdr (assoc 'alias val)) posh-functions)
       val)))
@@ -164,7 +164,7 @@
       (_ nil))))
 
 (defun powershell-capf ()
-  (when-let ((bnds (bounds-of-thing-at-point 'symbol)))
+  (when-let* ((bnds (bounds-of-thing-at-point 'symbol)))
     (cond
      ;; let comint complete files
      ((or (eq (char-after (car bnds)) ?/)
@@ -172,7 +172,7 @@
       nil)
      ;; function / cmdlet parameter
      ((eq (char-after (car bnds)) ?-)
-      (when-let ((func (powershell-function-name)))
+      (when-let* ((func (powershell-function-name)))
         (and (not (car func))
              (let ((pars (cdr (assoc 'params (powershell-lookup-function (cdr func))))))
                (and pars
@@ -191,7 +191,7 @@
                :company-docsig #'powershell-capf--var-docsig
                :annotation-function #'powershell-capf--var-annotation)))))
      ;; try function
-     ((when-let ((func (powershell-function-name)))
+     ((when-let* ((func (powershell-function-name)))
         (and (not (car func))
              (list (car bnds) (cdr bnds) posh-functions
                    :company-docsig #'powershell-capf--fn-docsig
@@ -254,7 +254,7 @@ to generate `powershell-default-data-file' if it doesn't exist."
 (defun powershell-eldoc-function ()
   "Format powershell cmdlet/function parameters for display in the minibuffer
 with `eldoc-mode'."
-  (when-let ((func (or (powershell-function-name))))
+  (when-let* ((func (or (powershell-function-name))))
     (and (not (car func))
          (let* ((name (cdr func))
                 (pars (cdr (assoc 'params (powershell-lookup-function name)))))
@@ -270,10 +270,10 @@ with `eldoc-mode'."
   "Powershell completion at point function.  Uses `powershell-eldoc-obarray' to complete 
 function arguments."
   (when (bound-and-true-p powershell-eldoc-obarray)
-    (when-let ((bnds (bounds-of-thing-at-point 'symbol)))
+    (when-let* ((bnds (bounds-of-thing-at-point 'symbol)))
       (cond
        ((eq (char-after (car bnds)) ?-)
-        (when-let ((func (powershell-function-name)))
+        (when-let* ((func (powershell-function-name)))
           (and (not (car func))
                (let ((pars (eval (intern-soft (downcase (cdr func))
                                               powershell-eldoc-obarray))))
