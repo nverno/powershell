@@ -660,17 +660,11 @@ characters that can't be set by the `syntax-table' alone.")
 
 (define-abbrev-table 'powershell-mode-abbrev-table ())
 
-(defun powershell-in-code-context-p ()
+(defun powershell-abbrev-enable-p ()
   "Don't expand in strings or comments."
   (let ((ppss (syntax-ppss)))
     (and (null (elt ppss 3))    ; inside string
          (null (elt ppss 4))))) ; inside comment
-
-(defun powershell-pre-abbrev-expand-hook ()
-  "Only expand abbrevs in code context."
-  (setq local-abbrev-table
-        (if (powershell-in-code-context-p)
-            powershell-mode-abbrev-table)))
 
 
 ;; ------------------------------------------------------------
@@ -777,9 +771,11 @@ Commands:
   (setq-local imenu-generic-expression powershell-imenu-expression)
   (imenu-add-menubar-index)
   
-  (setq local-abbrev-table powershell-mode-abbrev-table)
-  (add-hook 'pre-abbrev-expand-hook
-            #'powershell-pre-abbrev-expand-hook nil t)
+  (when abbrev-mode
+    (setq local-abbrev-table powershell-mode-abbrev-table)
+    (abbrev-table-put
+     local-abbrev-table
+     :enable-function #'powershell-abbrev-enable-p))
 
   (setq-local completion-ignore-case t)
   (add-hook 'completion-at-point-functions #'powershell-capf nil t)
